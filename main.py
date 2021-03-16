@@ -101,7 +101,7 @@ def administrators(func):
     @wraps(func)
     def wrapped(update: Update, context: CallbackContext, *args, **kwargs):
         if update.effective_user.id not in get_admin_ids(context.bot, update.effective_chat.id):
-            print("admin check failed")
+            logger.debug("admin check failed")
             return
 
         return func(update, context, *args, **kwargs)
