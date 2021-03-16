@@ -10,3 +10,5 @@ the chat history. Thus, the existence of this bot.
 
 This bot works only in normal groups becuase in supergroups, this "trick" doesn't work and there is no way to kick/leave 
 and retain the chat history.
+
+To run the bot: rename `config.example.toml` to `config.toml` and paste your bot token in the relevant field.
