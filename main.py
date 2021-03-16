@@ -46,11 +46,13 @@ your chats' histories before leaving them \
 TEXT_START = """Hello there 👋
 
 I'm a simple bot that allows you to leave a group or kick people in a way that the leaving/kicked member doesn't loose \
-their copy of the chat history. <a href="{}">I don't work in supergroups</a>, sorry. If you add to a supergroup, \
+their copy of the chat history. <a href="{}">I don't work in supergroups</a>, sorry. If you add me to a supergroup, \
 I will leave it.
 
 Only the group administrators can kick people, so make sure to \
-promote me after adding me to the chat!""".format(DEEPLINK_SUPERGROUPS_EXPLANATION)
+promote me after adding me to the chat!
+
+<a href="https://github.com/zeroone2numeral2/kicker-bot">⚙️ source code</a>""".format(DEEPLINK_SUPERGROUPS_EXPLANATION)
 
 TEXT_UPGRADE = """It looks like this group was upgraded to supergroup, but \
 <a href="{}">I don't work in supergroups</a>. Bye 👋""".format(DEEPLINK_SUPERGROUPS_EXPLANATION)
