@@ -1,13 +1,20 @@
+import json
+import logging
+import logging.config
 from functools import wraps
 
-from telegram import Update, TelegramError, Chat
+from telegram import Update, TelegramError, Chat, ParseMode, Bot
 from telegram.error import BadRequest
 from telegram.ext import Updater, CommandHandler, CallbackContext, Filters, MessageHandler
+from telegram.utils import helpers
 
-updater = Updater("")
+from mwt import MWT
+from config import config
+
+updater = Updater(config.telegram.token, workers=0)
 
 
-DEEPLINK_SUPERGROUPS_EXPLANATION = "https://t.me/{}?start=supergroups".format(updater.bot.username)
+DEEPLINK_SUPERGROUPS_EXPLANATION = helpers.create_deep_linked_url(updater.bot.username, "supergroups")
 
 SUPERGROUPS = """I see you're wondering why I left your chat, uh? Well it's not easy to explain, but I'll try my best.
 
@@ -36,14 +43,35 @@ Worry not, though: you can use <a href="https://desktop.telegram.org">Telegram D
 your chats' histories before leaving them \
 (<i>open a group > click on the group title > three dots menu > "export chat history"</i>)"""
 
+TEXT_START = """Hello there 👋
+
+I'm a simple bot that allows you to leave a group or kick people in a way that the leaving/kicked member doesn't loose \
+their copy of the chat history. <a href="{}">I don't work in supergroups</a>, sorry. If you add to a supergroup, \
+I will leave it.
+
+Only the group administrators can kick people, so make sure to \
+promote me after adding me to the chat!""".format(DEEPLINK_SUPERGROUPS_EXPLANATION)
+
 TEXT_UPGRADE = """It looks like this group was upgraded to supergroup, but \
-<a href="{}">I don't work in supergroups</a>. Bye""".format(DEEPLINK_SUPERGROUPS_EXPLANATION)
+<a href="{}">I don't work in supergroups</a>. Bye 👋""".format(DEEPLINK_SUPERGROUPS_EXPLANATION)
 
 TEXT_ADDED_SUPERGROUP = """This group is a supergroup, but \
-<a href="{}">I don't work in supergroups</a>. Bye""".format(DEEPLINK_SUPERGROUPS_EXPLANATION)
+<a href="{}">I don't work in supergroups</a>. Bye 👋""".format(DEEPLINK_SUPERGROUPS_EXPLANATION)
 
 TEXT_COMMAND_SUPERGROUP = """It looks like this group is not a supergroup, but \
-<a href="{}">I don't work in supergroups</a>. Bye""".format(DEEPLINK_SUPERGROUPS_EXPLANATION)
+<a href="{}">I don't work in supergroups</a>. Bye 👋""".format(DEEPLINK_SUPERGROUPS_EXPLANATION)
+
+
+def load_logging_config(file_name='logging.json'):
+    with open(file_name, 'r') as f:
+        logging_config = json.load(f)
+
+    logging.config.dictConfig(logging_config)
+
+
+load_logging_config("logging.json")
+
+logger = logging.getLogger(__name__)
 
 
 def is_supergroup(chat: Chat):
@@ -64,6 +92,23 @@ def supergroup_check(func):
     return wrapped
 
 
+@MWT(timeout=60 * 60)
+def get_admin_ids(bot: Bot, chat_id: int):
+    return [admin.user.id for admin in bot.get_chat_administrators(chat_id)]
+
+
+def administrators(func):
+    @wraps(func)
+    def wrapped(update: Update, context: CallbackContext, *args, **kwargs):
+        if update.effective_user.id not in get_admin_ids(context.bot, update.effective_chat.id):
+            print("admin check failed")
+            return
+
+        return func(update, context, *args, **kwargs)
+
+    return wrapped
+
+
 def kick_user(update: Update, user_id: int):
     error_message = None
 
@@ -71,13 +116,19 @@ def kick_user(update: Update, user_id: int):
         update.effective_chat.kick_member(user_id, revoke_messages=False)
         success = True
     except (TelegramError, BadRequest) as e:
+        logger.error("error while kicking: %s", e.message)
         # possible errors:
         # - bot has not the permission to kick members
-        # - bot is trying to kick an user that is no longer parte of the group
+        # - bot is trying to kick an user that is no longer part of the group
         # - bot is tryng to kick an administrator with higher rank
-        print(e.message)
+        error_lower = e.message.lower()
         success = False
-        error_message = e.message
+        error_message = "Error: <code>{}</code>".format(e.message)
+
+        if error_lower == "chat_admin_required":
+            error_message = "Error: either I'm not an administrator, or the user I must kick is an administrator too"
+        elif error_lower == "user_not_participant":
+            error_message = "Error: the user is not a member of this group"
 
     return success, error_message
 
@@ -91,9 +142,15 @@ def delete_messages(messages):
             pass
 
 
+@administrators
 @supergroup_check
 def on_kick_command(update: Update, context: CallbackContext):
+    logger.debug("/kick command")
+
     user_to_kick = update.effective_message.reply_to_message.from_user.id
+    if user_to_kick == updater.bot.id:
+        update.message.reply_html("Just remove me manually")
+        return
 
     success, reason = kick_user(update, user_to_kick)
 
@@ -105,6 +162,8 @@ def on_kick_command(update: Update, context: CallbackContext):
 
 @supergroup_check
 def on_kickme_command(update: Update, context: CallbackContext):
+    logger.debug("/kickme command")
+
     user_to_kick = update.effective_user.id
 
     success, reason = kick_user(update, user_to_kick)
@@ -118,27 +177,51 @@ def on_kickme_command(update: Update, context: CallbackContext):
 def on_new_chat_member(update: Update, context: CallbackContext):
     for member in update.message.new_chat_members:
         if member.id == updater.bot.id and is_supergroup(update.effective_chat):
+            logger.debug("bot added to a supergroup")
+
             update.message.reply_html(TEXT_ADDED_SUPERGROUP, disable_web_page_preview=True)
             update.effective_chat.leave()
             return
 
 
 def on_migrate(update: Update, context: CallbackContext):
-    update.message.reply_html(TEXT_UPGRADE, disable_web_page_preview=True)
-    update.effective_chat.leave()
+    logger.debug("chat migrated")
+
+    new_supergroup_id = update.message.migrate_to_chat_id
+    context.bot.send_message(new_supergroup_id, TEXT_UPGRADE, parse_mode=ParseMode.HTML, disable_web_page_preview=True)
+    context.bot.leave_chat(new_supergroup_id, updater.bot.id)
+
+
+def on_supergroups_deeplink(update: Update, context: CallbackContext):
+    logger.debug("supergroups deeplink")
+
+    update.message.reply_html(SUPERGROUPS, disable_web_page_preview=True)
+
+
+def on_start_command(update: Update, context: CallbackContext):
+    logger.debug("/start or /help")
+
+    update.message.reply_html(TEXT_START, disable_web_page_preview=True)
 
 
 def main():
-    on_kick_command_handler = CommandHandler(["kick"], on_kick_command, Filters.group & Filters.reply)
-    on_kickme_command_handler = CommandHandler(["kickme"], on_kickme_command, Filters.group)
+    on_supergroups_deeplink_handler = CommandHandler("start", on_supergroups_deeplink, Filters.regex("supergroups"))
+    on_start_command_handler = CommandHandler(["start", "help"], on_start_command, Filters.chat_type.private)
+    on_kick_command_handler = CommandHandler(["kick"], on_kick_command, Filters.chat_type.groups & Filters.reply)
+    on_kickme_command_handler = CommandHandler(["kickme"], on_kickme_command, Filters.chat_type.groups)
     on_new_chat_member_handler = MessageHandler(Filters.status_update.new_chat_members, on_new_chat_member)
     on_migrate_handler = MessageHandler(Filters.status_update.migrate, on_migrate)
 
+    updater.dispatcher.add_handler(on_supergroups_deeplink_handler)  # needs to be added before "on_start_command_handler"
+    updater.dispatcher.add_handler(on_start_command_handler)
     updater.dispatcher.add_handler(on_kick_command_handler)
     updater.dispatcher.add_handler(on_kickme_command_handler)
     updater.dispatcher.add_handler(on_new_chat_member_handler)
     updater.dispatcher.add_handler(on_migrate_handler)
 
+    updater.bot.set_my_commands([])
+
+    logger.info("running as @%s", updater.bot.username)
     updater.start_polling(drop_pending_updates=True)
 
 
