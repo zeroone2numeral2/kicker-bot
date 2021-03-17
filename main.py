@@ -138,9 +138,9 @@ def kick_user(update: Update, user_id: int):
         error_message = "Error: <code>{}</code>".format(e.message)
 
         if error_lower == "chat_admin_required":
-            error_message = "⚠️ either I'm not an administrator, or the user I have to kick is an administrator too"
+            error_message = "⚠️ <i>either I'm not an administrator, or the user I have to kick is an administrator too</i>"
         elif error_lower == "user_not_participant":
-            error_message = "⚠️ the user is not a member of this group"
+            error_message = "⚠️ <i>the user is not a member of this group</i>"
 
     return success, error_message
 
@@ -169,7 +169,7 @@ def on_kick_command(update: Update, context: CallbackContext):
     if success:
         delete_messages([update.message])
     else:
-        update.message.reply_text(reason)
+        update.message.reply_html(reason)
 
 
 @supergroup_check
@@ -183,7 +183,7 @@ def on_kickme_command(update: Update, context: CallbackContext):
     if success:
         delete_messages([update.message])
     else:
-        update.message.reply_text(reason)
+        update.message.reply_html(reason)
 
 
 def on_new_chat_member(update: Update, context: CallbackContext):
