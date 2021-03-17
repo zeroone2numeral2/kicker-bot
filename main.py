@@ -140,7 +140,7 @@ def kick_user(update: Update, user_id: int):
         if error_lower == "chat_admin_required":
             error_message = "⚠️ <i>either I'm not an administrator, or the user I have to kick is an administrator too</i>"
         elif error_lower == "user_not_participant":
-            error_message = "⚠️ <i>the user is not a member of this group</i>"
+            error_message = "⚠️ <i>the user is not a member of the group</i>"
 
     return success, error_message
 
