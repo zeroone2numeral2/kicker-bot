@@ -52,6 +52,10 @@ I will leave it.
 Only the group administrators can kick people, so make sure to \
 promote me after adding me to the chat!
 
+Commands:
+- /kickme: the bot will kick you from the group but you'll still be able to access your copy of the chat history
+- /kick (admins only, in reply to another user): kick an user and let them keep their copy of the chat history
+
 <a href="https://github.com/zeroone2numeral2/kicker-bot">⚙️ source code</a>""".format(DEEPLINK_SUPERGROUPS_EXPLANATION)
 
 TEXT_UPGRADE = """It looks like this group was upgraded to supergroup, but \
@@ -164,7 +168,7 @@ def on_kick_command(update: Update, context: CallbackContext):
 
 @supergroup_check
 def on_kickme_command(update: Update, context: CallbackContext):
-    logger.debug("/kickme command")
+    logger.debug("/kickme or /leave command")
 
     user_to_kick = update.effective_user.id
 
@@ -210,7 +214,7 @@ def main():
     on_supergroups_deeplink_handler = CommandHandler("start", on_supergroups_deeplink, Filters.regex("supergroups"))
     on_start_command_handler = CommandHandler(["start", "help"], on_start_command, Filters.chat_type.private)
     on_kick_command_handler = CommandHandler(["kick"], on_kick_command, Filters.chat_type.groups & Filters.reply)
-    on_kickme_command_handler = CommandHandler(["kickme"], on_kickme_command, Filters.chat_type.groups)
+    on_kickme_command_handler = CommandHandler(["kickme", "leave"], on_kickme_command, Filters.chat_type.groups)
     on_new_chat_member_handler = MessageHandler(Filters.status_update.new_chat_members, on_new_chat_member)
     on_migrate_handler = MessageHandler(Filters.status_update.migrate, on_migrate)
 
