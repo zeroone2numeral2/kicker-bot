@@ -1,7 +1,7 @@
 Extremely simple Telegram bot that exposes two commands in groups:
 
-- `/kick` can only be issued by the administrators in reply to another user. The bot will kick the replied-to user
-- `/kickme` will kick the user who issued the command
+- `!kick` can only be issued by the administrators in reply to another user. The bot will kick the replied-to user
+- `!kickme` will kick the user who issued the command
 
 What's the point of having a bot doing this simple tasks that users can do on their own? 
 When you are removed from a Telegram group (or leave on your own), you 
