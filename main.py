@@ -217,8 +217,8 @@ def on_start_command(update: Update, context: CallbackContext):
 
 
 def main():
-    kick_re = re.compile(r"^!kick.*", re.IGNORECASE)
-    kickme_re = re.compile(r"^!kickme.*", re.IGNORECASE)
+    kick_re = re.compile(r"^!kick(?:$|\b).*", re.IGNORECASE)
+    kickme_re = re.compile(r"^!kickme(?:$|\b).*", re.IGNORECASE)
 
     on_supergroups_deeplink_handler = CommandHandler("start", on_supergroups_deeplink, Filters.regex("supergroups"))
     on_start_command_handler = CommandHandler(["start", "help"], on_start_command, Filters.chat_type.private)
