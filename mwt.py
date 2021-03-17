@@ -1,7 +1,10 @@
 # source: http://code.activestate.com/recipes/325905-memoize-decorator-with-timeout/#c1
+import logging
 
 import time
 from functools import wraps
+
+logger = logging.getLogger(__name__)
 
 
 class MWT:
@@ -37,13 +40,13 @@ class MWT:
 
             try:
                 v = cache[key]
-                print("mwt: cache")
+                logger.debug("cache: hit")
 
                 if (t - v[1]) > self.timeout:
                     raise KeyError
 
             except KeyError:
-                print("mwt: new")
+                logger.debug("cache: new")
                 v = cache[key] = f(*args,**kwargs), t
 
             return v[0]
