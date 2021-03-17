@@ -59,7 +59,7 @@ chat history
 • <code>!kick</code> (admins only, in reply to another user): kick an user and let them keep their copy of the \
 chat history
 
-Commands work with the "<code>!</code>" and not with the classic "<code>/</code>" to avoid to trigger people's \
+Commands work with the "<code>!</code>" prefix and not with the classic "<code>/</code>" to avoid to trigger people's \
 instinctive reaction to click on them
 
 <a href="https://github.com/zeroone2numeral2/kicker-bot">⚙️ source code</a>""".format(DEEPLINK_SUPERGROUPS_EXPLANATION)
@@ -217,6 +217,13 @@ def on_start_command(update: Update, context: CallbackContext):
 
 
 def main():
+    if not updater.bot.can_read_all_group_messages:
+        print("ERROR: the bot works only if \"privacy mode\" is disabled. This is to make sure the bot receives "
+              "commands such as \"!kick\" or \"!kickme\" even when it's not an administrator "
+              "(more info at https://core.telegram.org/bots#privacy-mode).\nPlease disable it from "
+              "@BotFather using the /setprivacy command")
+        return
+
     kick_re = re.compile(r"^!kick(?:$|\b).*", re.IGNORECASE)
     kickme_re = re.compile(r"^!kickme(?:$|\b).*", re.IGNORECASE)
 
@@ -234,7 +241,7 @@ def main():
     updater.dispatcher.add_handler(on_new_chat_member_handler)
     updater.dispatcher.add_handler(on_migrate_handler)
 
-    updater.bot.set_my_commands([])
+    updater.bot.set_my_commands([])  # make sure the bot doesn't have any command set
 
     logger.info("running as @%s", updater.bot.username)
     updater.start_polling(drop_pending_updates=True)
