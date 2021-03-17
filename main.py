@@ -1,6 +1,7 @@
 import json
 import logging
 import logging.config
+import re
 from functools import wraps
 
 from telegram import Update, TelegramError, Chat, ParseMode, Bot
@@ -53,8 +54,13 @@ Only the group administrators can kick people, so <b>make sure to \
 promote me after adding me to a chat!</b>
 
 <b>Commands:</b>
-• /kickme: the bot will kick you from the group, but you'll still be able to access your copy of the chat history
-• /kick (admins only, in reply to another user): kick an user and let them keep their copy of the chat history
+• <code>!kickme</code>: the bot will kick you from the group, but you'll still be able to access your copy of the \
+chat history
+• <code>!kick</code> (admins only, in reply to another user): kick an user and let them keep their copy of the \
+chat history
+
+Commands work with the "<code>!</code>" and not with the classic "<code>/</code>" to avoid to trigger people's \
+instinctive reaction to click on them
 
 <a href="https://github.com/zeroone2numeral2/kicker-bot">⚙️ source code</a>""".format(DEEPLINK_SUPERGROUPS_EXPLANATION)
 
@@ -132,7 +138,7 @@ def kick_user(update: Update, user_id: int):
         error_message = "Error: <code>{}</code>".format(e.message)
 
         if error_lower == "chat_admin_required":
-            error_message = "Error: either I'm not an administrator, or the user I must kick is an administrator too"
+            error_message = "Error: either I'm not an administrator, or the user I would have to kick is an administrator too"
         elif error_lower == "user_not_participant":
             error_message = "Error: the user is not a member of this group"
 
@@ -151,7 +157,7 @@ def delete_messages(messages):
 @administrators
 @supergroup_check
 def on_kick_command(update: Update, context: CallbackContext):
-    logger.debug("/kick command")
+    logger.debug("!kick command")
 
     user_to_kick = update.effective_message.reply_to_message.from_user.id
     if user_to_kick == updater.bot.id:
@@ -168,7 +174,7 @@ def on_kick_command(update: Update, context: CallbackContext):
 
 @supergroup_check
 def on_kickme_command(update: Update, context: CallbackContext):
-    logger.debug("/kickme or /leave command")
+    logger.debug("!kickme command")
 
     user_to_kick = update.effective_user.id
 
@@ -211,10 +217,13 @@ def on_start_command(update: Update, context: CallbackContext):
 
 
 def main():
+    kick_re = re.compile(r"^!kick.*", re.IGNORECASE)
+    kickme_re = re.compile(r"^!kickme.*", re.IGNORECASE)
+
     on_supergroups_deeplink_handler = CommandHandler("start", on_supergroups_deeplink, Filters.regex("supergroups"))
     on_start_command_handler = CommandHandler(["start", "help"], on_start_command, Filters.chat_type.private)
-    on_kick_command_handler = CommandHandler(["kick"], on_kick_command, Filters.chat_type.groups & Filters.reply)
-    on_kickme_command_handler = CommandHandler(["kickme", "leave"], on_kickme_command, Filters.chat_type.groups)
+    on_kick_command_handler = MessageHandler(Filters.chat_type.groups & Filters.reply & Filters.regex(kick_re), on_kick_command)
+    on_kickme_command_handler = MessageHandler(Filters.chat_type.groups & Filters.regex(kickme_re), on_kickme_command)
     on_new_chat_member_handler = MessageHandler(Filters.status_update.new_chat_members, on_new_chat_member)
     on_migrate_handler = MessageHandler(Filters.status_update.migrate, on_migrate)
 
