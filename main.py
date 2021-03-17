@@ -46,15 +46,15 @@ your chats' histories before leaving them \
 TEXT_START = """Hello there 👋
 
 I'm a simple bot that allows you to leave a group or kick people in a way that the leaving/kicked member doesn't loose \
-their copy of the chat history. <a href="{}">I don't work in supergroups</a>, sorry. If you add me to a supergroup, \
-I will leave it.
+their copy of the chat history. <a href="{}">I don't work in supergroups</a>: if you add me to a supergroup, \
+I will leave it 😔
 
-Only the group administrators can kick people, so make sure to \
-promote me after adding me to the chat!
+Only the group administrators can kick people, so <b>make sure to \
+promote me after adding me to a chat!</b>
 
-Commands:
-- /kickme: the bot will kick you from the group but you'll still be able to access your copy of the chat history
-- /kick (admins only, in reply to another user): kick an user and let them keep their copy of the chat history
+<b>Commands:</b>
+• /kickme: the bot will kick you from the group, but you'll still be able to access your copy of the chat history
+• /kick (admins only, in reply to another user): kick an user and let them keep their copy of the chat history
 
 <a href="https://github.com/zeroone2numeral2/kicker-bot">⚙️ source code</a>""".format(DEEPLINK_SUPERGROUPS_EXPLANATION)
 
