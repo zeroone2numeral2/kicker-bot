@@ -4,7 +4,7 @@ import logging.config
 import re
 from functools import wraps
 
-from telegram import Update, TelegramError, Chat, ParseMode, Bot
+from telegram import Update, TelegramError, Chat, ParseMode, Bot, BotCommandScopeAllPrivateChats, BotCommand
 from telegram.error import BadRequest
 from telegram.ext import Updater, CommandHandler, CallbackContext, Filters, MessageHandler
 from telegram.utils import helpers
@@ -241,7 +241,14 @@ def main():
     updater.dispatcher.add_handler(on_new_chat_member_handler)
     updater.dispatcher.add_handler(on_migrate_handler)
 
-    updater.bot.set_my_commands([])  # make sure the bot doesn't have any command set
+    updater.bot.set_my_commands([])  # make sure the bot doesn't have any command set...
+    updater.bot.set_my_commands(  # ...then set the scope for private chats
+        [
+            BotCommand("start", "get the welcome message"),
+            BotCommand("help", "get the help message")
+        ],
+        scope=BotCommandScopeAllPrivateChats()
+    )
 
     allowed_updates = ["message"]  # https://core.telegram.org/bots/api#getupdates
 
