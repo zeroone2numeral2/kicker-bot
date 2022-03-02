@@ -254,6 +254,8 @@ def main():
 
     logger.info("running as @%s, allowed updates: %s", updater.bot.username, allowed_updates)
     updater.start_polling(drop_pending_updates=True, allowed_updates=allowed_updates)
+    updater.job_queue.stop()
+    updater.idle()
 
 
 if __name__ == '__main__':
